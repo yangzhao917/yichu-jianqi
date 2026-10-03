@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String             @id @default(cuid())
+  email           String             @unique
+  phone           String?            @unique
+  name            String
+  passwordHash    String
+  role            String             @default("editor")
+  organizationId  String?
+  organization    Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdItems    CollectionItem[]   @relation("CreatedItems")
+  provenance      ProvenanceRecord[] @relation("CreatedProvenance")
+  reviewedContent ContentVersion[]   @relation("ReviewedContent")
+  workflowTasks   WorkflowTask[]     @relation("RequestedWorkflows")
+  auditLogs       AuditLog[]
+  updatedSettings SystemSetting[]    @relation("UpdatedSettings")
+  organizationSettings OrganizationSetting[] @relation("UpdatedOrganizationSettings")
+  leads           Lead[]             @relation("CreatedLeads")
+  productMedia    ProductMedia[]
+  createdKnowledgeFiles KnowledgeFile[] @relation("CreatedKnowledgeFiles")
+  confirmedKnowledgeFiles KnowledgeFile[] @relation("ConfirmedKnowledgeFiles")
+}
+
+model Organization {
+  id          String                @id @default(cuid())
+  slug        String                @unique
+  name        String
+  creditCode  String                @unique
+  tagline     String?
+  description String?
+  logoUrl     String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  users       User[]
+  products    CollectionItem[]
+  settings    OrganizationSetting[]
+  interactions Interaction[]
+  leads       Lead[]
+}
+
+model CollectionItem {
+  id              String             @id @default(cuid())
+  slug            String             @unique
+  title           String
+  summary         String
+  description     String
+  era             String?
+  location        String?
+  category        String?
+  coverImageUrl   String?
+  lifecycleStatus String             @default("draft")
+  isDemo          Boolean            @default(false)
+  organizationId  String?
+  organization    Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  useCase         String?
+  audience        String?
+  specificationsJson String?
+  resourcesJson   String?
+  createdById     String?
+  createdBy       User?              @relation("CreatedItems", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  contents        ContentVersion[]
+  provenance      ProvenanceRecord[]
+  workflows       WorkflowTask[]
+  interactions    Interaction[]
+  leads           Lead[]
+  mediaAssets     ProductMedia[]
+  knowledgeFiles  KnowledgeFile[]
+
+  @@index([organizationId, lifecycleStatus])
+}
+
+model ProductMedia {
+  id              String         @id @default(cuid())
+  collectionItemId String
+  collectionItem  CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  kind            String         @default("video")
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  storagePath     String
+  mediaUrl        String
+  status          String         @default("ready")
+  createdById     String?
+  createdBy       User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([collectionItemId, kind, status])
+}
+
+model KnowledgeFile {
+  id              String         @id @default(cuid())
+  collectionItemId String
+  collectionItem  CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  storagePath     String
+  status          String         @default("pending")
+  indexDocumentId String?
+  errorMessage    String?
+  isPublic        Boolean        @default(false)
+  confirmedAt     DateTime?
+  confirmedById   String?
+  confirmedBy     User?          @relation("ConfirmedKnowledgeFiles", fields: [confirmedById], references: [id], onDelete: SetNull)
+  createdById     String?
+  createdBy       User?          @relation("CreatedKnowledgeFiles", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([collectionItemId, status, isPublic])
+}
+
+model ProvenanceRecord {
+  id                 String         @id @default(cuid())
+  collectionItemId   String
+  collectionItem     CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  sourceName         String
+  sourceUrl          String
+  sourceLocator      String?
+  accessedAt         DateTime
+  verificationStatus String         @default("needs_evidence")
+  notes              String?
+  createdById        String?
+  createdBy          User?          @relation("CreatedProvenance", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime       @default(now())
+}
+
+model ContentVersion {
+  id               String         @id @default(cuid())
+  collectionItemId String
+  collectionItem   CollectionItem @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  title            String
+  kind             String         @default("video")
+  script           String
+  narrationText    String?
+  mediaUrl         String?
+  status           String         @default("draft")
+  isDemo           Boolean        @default(false)
+  reviewerNote     String?
+  reviewedAt       DateTime?
+  reviewedById     String?
+  reviewedBy       User?          @relation("ReviewedContent", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  workflows        WorkflowTask[]
+}
+
+model WorkflowTask {
+  id                     String          @id @default(cuid())
+  collectionItemId       String
+  collectionItem         CollectionItem  @relation(fields: [collectionItemId], references: [id], onDelete: Cascade)
+  contentVersionId       String?
+  contentVersion         ContentVersion? @relation(fields: [contentVersionId], references: [id], onDelete: SetNull)
+  requestedById          String
+  requestedBy            User            @relation("RequestedWorkflows", fields: [requestedById], references: [id], onDelete: Restrict)
+  title                  String
+  durationSeconds        Int?
+  outputMode             String?
+  language               String?
+  frameTemplate          String?
+  workflowName           String?
+  provider               String          @default("unconfigured")
+  providerVersion        String?
+  providerTaskId         String?
+  status                 String          @default("queued")
+  currentStep            String?
+  errorMessage           String?
+  generationEvidenceJson String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  steps                  WorkflowStep[]
+}
+
+model WorkflowStep {
+  id              String       @id @default(cuid())
+  taskId          String
+  task            WorkflowTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  key             String
+  label           String
+  stepOrder       Int
+  status          String       @default("pending")
+  provider        String?
+  providerVersion String?
+  providerTaskId  String?
+  outputRef       String?
+  errorMessage    String?
+  evidenceJson    String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([taskId, key])
+  @@index([taskId, stepOrder])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String
+  detailsJson String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  valueJson   String
+  isPublic    Boolean  @default(false)
+  description String?
+  updatedById  String?
+  updatedBy    User?    @relation("UpdatedSettings", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrganizationSetting {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String
+  valueJson      String
+  isPublic       Boolean      @default(false)
+  description    String?
+  updatedById    String?
+  updatedBy      User?        @relation("UpdatedOrganizationSettings", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId, isPublic])
+}
+
+model Interaction {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collectionItemId String?
+  collectionItem CollectionItem? @relation(fields: [collectionItemId], references: [id], onDelete: SetNull)
+  event          String
+  source         String
+  sessionId      String?
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([collectionItemId, event, source])
+}
+
+model Lead {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collectionItemId String?
+  collectionItem CollectionItem? @relation(fields: [collectionItemId], references: [id], onDelete: SetNull)
+  name           String
+  phone          String?
+  email          String?
+  company        String?
+  message        String?
+  consent        Boolean
+  consentedAt    DateTime?
+  source         String         @default("direct")
+  status         String         @default("new")
+  createdById    String?
+  createdBy      User?          @relation("CreatedLeads", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId, status, createdAt])
+  @@index([collectionItemId, createdAt])
+}

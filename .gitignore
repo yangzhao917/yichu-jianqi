@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+apps/api/prisma/dev.db
+coverage/
+.DS_Store
+.~*
+【西客松+XiHack+2026+AI软件赛道作品提交通知】.docx
+public/generated/
+tmp/

@@ -1,0 +1,3 @@
+[submodule "video-agent"]
+	path = video-agent
+	url = https://github.com/ATH-MaaS/Pixelle-Video.git

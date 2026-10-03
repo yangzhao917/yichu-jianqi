@@ -1,0 +1,44 @@
+{
+  "name": "yichu-jianqi-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "一触见企产品知识入口 API MVP",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "start:dev": "ts-node --transpile-only src/main.ts",
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:push": "tsx prisma/ensure.ts",
+    "db:seed": "tsx prisma/ensure.ts && tsx prisma/seed.ts",
+    "test": "npm run build && tsx --test test/**/*.test.ts",
+    "api:self-check": "npm run build && tsx scripts/self-check.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@alicloud/dypnsapi20170525": "^2.0.0",
+    "@nestjs/common": "^11.0.11",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.11",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.11",
+    "@prisma/client": "^6.16.2",
+    "bcryptjs": "^3.0.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "qrcode": "^1.5.4",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.15.3",
+    "@types/qrcode": "^1.5.5",
+    "prisma": "^6.16.2",
+    "supertest": "^7.1.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}
